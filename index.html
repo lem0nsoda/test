@@ -3,51 +3,70 @@
 <head>
 <meta charset="UTF-8">
 <title>WebSocket Client</title>
+<!--Javascript-->
 <script>
+//skript wird erst ausgeführt wenn ganzes html-doc geladen
 document.addEventListener('DOMContentLoaded', function() {
 
-    // Parameter auslesen und an den Server schicken
+    // Parameter aus URL auslesen und an den Server schicken
     let params = new URLSearchParams(window.location.search);
     let id = params.get('id');
 
-    // Websocket erstellen
+    // Websocket-Verbindung zum Server mit der zuvor ausgelesenen id
     const ws = new WebSocket('ws://localhost:8080?id='+id);
     ws.binaryType = 'arraybuffer';
 
+    //wenn Websocket-Verbindung geöffnet:
     ws.onopen = function() {
         console.log('Verbindung zum Server hergestellt.');
-    };
 
+        // Bildschirmgröße erfassen
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+
+        // Nachricht mit der Bildschirmgröße an den Server senden
+        const screenSizeMessage = {
+            type: 'screenSize',
+            width: screenWidth,
+            height: screenHeight
+        };
+        ws.send(JSON.stringify(screenSizeMessage));
+
+    };
+    //wenn Websocket-Verbindung error hat:
     ws.onerror = function(error) {
         console.log('WebSocket-Fehler: ' + error);
     };
 
+    //wenn Client eine nachricht vom Server hat: (e... empfangene Daten)
     ws.onmessage = function(e) {
 
         let message = e.data;
         if ( e.data instanceof ArrayBuffer ){
-            message = new TextDecoder().decode(e.data);
+            message = new TextDecoder().decode(e.data); //Arraybuffer/binäre Daten zu Text konvertieren
         }
         message = JSON.parse(message);
         //const message = JSON.parse(e.data instanceof ArrayBuffer ? new TextDecoder().decode(e.data) : e.data);
 
         console.log('Nachricht erhalten:', message);
+        //hinzufügen der Nachricht der Liste empfangener Nachrichten
         document.getElementById('messages').innerHTML += `<li>${message.sender}: ${message.text}</li>`;
     };
 
     document.getElementById('sendButton').onclick = function() {
+        //eine neue nachricht wird erstellt:
         const message = {
             sender: document.getElementById('name').value,
             text: document.getElementById('message').value
         };
+        //in JSON formatieren
         ws.send(JSON.stringify(message));
     };
 
-    const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight;
 });
 </script>
 </head>
+<!--HTML-->
 <body>
   <h1>WebSocket Chat</h1>
 
