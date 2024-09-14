@@ -2,21 +2,17 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
+<link href="style.css" rel="stylesheet" type="text/css" />
 <title>WebSocket Client</title>
-<!--Javascript-->
+<!-- JavaScript -->
 <script>
-//skript wird erst ausgeführt wenn ganzes html-doc geladen
 document.addEventListener('DOMContentLoaded', function() {
 
-    // Parameter aus URL auslesen und an den Server schicken
-    let params = new URLSearchParams(window.location.search);
-    let id = params.get('id');
-
-    // Websocket-Verbindung zum Server mit der zuvor ausgelesenen id
-    const ws = new WebSocket('ws://localhost:8080?id='+id);
+    // WebSocket-Verbindung zum Server mit der zuvor ausgelesenen id
+    const ws = new WebSocket('ws://localhost:8080?id=' + new URLSearchParams(window.location.search).get('id'));
     ws.binaryType = 'arraybuffer';
 
-    //wenn Websocket-Verbindung geöffnet:
+    // Wenn WebSocket-Verbindung geöffnet
     ws.onopen = function() {
         console.log('Verbindung zum Server hergestellt.');
 
@@ -25,54 +21,74 @@ document.addEventListener('DOMContentLoaded', function() {
         const screenHeight = window.innerHeight;
 
         // Nachricht mit der Bildschirmgröße an den Server senden
-        const screenSizeMessage = {
-            type: 'screenSize',
-            width: screenWidth,
-            height: screenHeight
-        };
-        ws.send(JSON.stringify(screenSizeMessage));
-
+        ws.send(JSON.stringify({
+            screenWidth: screenWidth,
+            screenHeight: screenHeight
+        }));
     };
-    //wenn Websocket-Verbindung error hat:
+
+    // Wenn WebSocket-Verbindung Fehler hat
     ws.onerror = function(error) {
         console.log('WebSocket-Fehler: ' + error);
     };
 
-    //wenn Client eine nachricht vom Server hat: (e... empfangene Daten)
+    // Wenn der Client eine Nachricht vom Server hat
     ws.onmessage = function(e) {
-
         let message = e.data;
-        if ( e.data instanceof ArrayBuffer ){
-            message = new TextDecoder().decode(e.data); //Arraybuffer/binäre Daten zu Text konvertieren
+        if (e.data instanceof ArrayBuffer) {
+            message = new TextDecoder().decode(e.data); // ArrayBuffer/binäre Daten zu Text konvertieren
         }
         message = JSON.parse(message);
-        //const message = JSON.parse(e.data instanceof ArrayBuffer ? new TextDecoder().decode(e.data) : e.data);
 
         console.log('Nachricht erhalten:', message);
-        //hinzufügen der Nachricht der Liste empfangener Nachrichten
-        document.getElementById('messages').innerHTML += `<li>${message.sender}: ${message.text}</li>`;
+
+        // Wenn der Server die Nachricht sendet, um ein Bild anzuzeigen
+        if (message.text === 'displayImage') {
+            imageURL = message.imageUrl; // Bild-URL vom Server
+            console.log('Bildpfad:', imageURL);
+            document.getElementById('messages').innerHTML += `<li>Bildpfad: ${imageURL}</li>`;
+
+            document.getElementById('imageDisplay').src = imageURL;
+
+
+            let img = document.getElementById('imageDisplay');
+            img = document.createElement('img');
+            img.id = 'imageDisplay';
+            document.body.appendChild(img);
+            img.src = imageURL;
+
+
+        }
+        if ((message.sender && message.text) || (message.sender || message.text)) {
+            // Nachricht zur Liste empfangener Nachrichten hinzufügen
+            document.getElementById('messages').innerHTML += `<li>${message.sender}: ${message.text}</li>`;
+        }
     };
 
     document.getElementById('sendButton').onclick = function() {
-        //eine neue nachricht wird erstellt:
+        // Eine neue Nachricht wird erstellt
         const message = {
             sender: document.getElementById('name').value,
             text: document.getElementById('message').value
         };
-        //in JSON formatieren
+        // In JSON formatieren
         ws.send(JSON.stringify(message));
     };
 
 });
 </script>
 </head>
-<!--HTML-->
+<!-- HTML -->
 <body>
-  <h1>WebSocket Chat</h1>
+  <div id="inputs">
+    <h1>WebSocket Chat</h1>
+    <input type="text" id="name" placeholder="Dein Name">
+    <input type="text" id="message" placeholder="Deine Nachricht">
+    <button id="sendButton">Senden</button>
+    <p id="messages"></p>
+  </div>
 
-  <input type="text" id="name" placeholder="Dein Name">
-  <input type="text" id="message" placeholder="Deine Nachricht">
-  <button id="sendButton">Senden</button>
-  <ul id="messages"></ul>
+  <div id="imageDisplay"></div>
+
 </body>
 </html>
