@@ -8,8 +8,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
-    // WebSocket-Verbindung zum Server mit der zuvor ausgelesenen id
-    const ws = new WebSocket('ws://localhost:8080?id=' + new URLSearchParams(window.location.search).get('id'));
+    // WebSocket-Verbindung zum Server
+    const ws = new WebSocket('ws://localhost:8080');
     ws.binaryType = 'arraybuffer';
 
     // Wenn WebSocket-Verbindung geöffnet
@@ -44,22 +44,47 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Wenn der Server die Nachricht sendet, um ein Bild anzuzeigen
         if (message.text === 'displayImage') {
-            imageURL = message.imageUrl; // Bild-URL vom Server
+            const imageURL = message.imageUrl; // Bild-URL vom Server
             console.log('Bildpfad:', imageURL);
-            document.getElementById('messages').innerHTML += `<li>Bildpfad: ${imageURL}</li>`;
-
-            document.getElementById('imageDisplay').src = imageURL;
-
 
             let img = document.getElementById('imageDisplay');
-            img = document.createElement('img');
-            img.id = 'imageDisplay';
-            document.body.appendChild(img);
+            if (!img) {
+                img = document.createElement('img');
+                img.id = 'imageDisplay';
+                document.body.appendChild(img);
+            }
             img.src = imageURL;
 
-
         }
-        if ((message.sender && message.text) || (message.sender || message.text)) {
+
+        // Wenn der Server die Nachricht sendet, um eine Diashow anzuzeigen
+        if (message.text === 'displayDia') {
+            console.log("Diashow gestartet");
+
+            const images = message.images; // Array von Bild-URLs
+            let currentImageIndex = 0;
+
+            let img = document.getElementById('imageDisplay');
+            if (!img) {
+                img = document.createElement('img');
+                img.id = 'imageDisplay';
+                document.body.appendChild(img);
+            }
+
+            function showNextImage() {
+                if (images.length > 0) {
+                    img.src = images[currentImageIndex];
+                    currentImageIndex = (currentImageIndex + 1) % images.length;
+                }
+            }
+
+            // Zeige das erste Bild und starte den Wechsel-Timer
+            showNextImage();
+            setInterval(showNextImage, 3000); // Wechsel alle 3 Sekunden
+        }
+
+        // Wenn eine Nachricht vom Server empfangen wird
+        if (message.sender && message.text) {
             // Nachricht zur Liste empfangener Nachrichten hinzufügen
             document.getElementById('messages').innerHTML += `<li>${message.sender}: ${message.text}</li>`;
         }
@@ -87,8 +112,8 @@ document.addEventListener('DOMContentLoaded', function() {
     <button id="sendButton">Senden</button>
     <p id="messages"></p>
   </div>
-
-  <div id="imageDisplay"></div>
+    <img id="imageDisplay" />
+  </div>
 
 </body>
 </html>

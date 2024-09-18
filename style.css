@@ -1,5 +1,5 @@
 /* Grundlegendes, dass in allen browsern gleich ausschaut*/
-* {
+html {
     margin: 0; /*äußere Abstand*/
     padding: 0;	/*innere Abstand*/
     box-sizing: border-box;
